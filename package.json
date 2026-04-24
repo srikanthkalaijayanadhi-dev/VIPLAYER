@@ -1,0 +1,9 @@
+{
+  "name": "viplayer",
+  "version": "1.0.0",
+  "description": "Secure video publishing Vercel app",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}
