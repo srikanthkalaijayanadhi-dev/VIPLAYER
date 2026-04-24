@@ -49,25 +49,44 @@ function initAdminPage() {
     publishBtn.disabled = true;
 
     try {
-      const response = await fetch('/api/publish', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${password}`
-        },
-        body: JSON.stringify({ embedCode })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to publish video');
+      if (password !== 'secret123') {
+        throw new Error('Unauthorized: Invalid Admin Password!');
       }
 
-      const watchUrl = `${window.location.origin}/watch?id=${data.id}`;
+      // Direct Upstash REST API Call (Frontend-only publish)
+      const id = 'vid_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+      const UPSTASH_URL = "https://glorious-beagle-83532.upstash.io";
+      const UPSTASH_TOKEN = "gQAAAAAAAUZMAAIgcDFkOTZmM2I1NjczOGE0ODFkYWJkYjgxNzU0ZGMyMmNiMw";
+
+      const payload = { embedCode, createdAt: new Date().toISOString() };
+
+      const response = await fetch(`${UPSTASH_URL}/set/${id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${UPSTASH_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        throw new Error(`Upstash failed to respond. Response: ${responseText.slice(0,30)}...`);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      let basePath = window.location.pathname;
+      if (basePath.endsWith('index.html') || basePath.endsWith('/')) {
+        basePath = basePath.substring(0, basePath.lastIndexOf('/'));
+      }
+      const watchUrl = `${window.location.origin}${basePath}/watch.html?id=${id}`;
       showResult(true, 'Published Successfully!', 'Share this secure link to allow viewing:', watchUrl);
-      
-      // Clear form
       document.getElementById('embedCode').value = '';
 
     } catch (err) {
@@ -107,15 +126,37 @@ async function initWatchPage() {
   }
 
   try {
-    const response = await fetch(`/api/video?id=${videoId}`);
+    // Direct Upstash GET using Read-Only Token
+    const UPSTASH_URL = "https://glorious-beagle-83532.upstash.io";
+    const READONLY_TOKEN = "ggAAAAAAAUZMAAIgcDFbdPAc2Rau2gMipDboRE3W6lVSK9jBbn1GNAUmbjUV6g";
+    
+    const response = await fetch(`${UPSTASH_URL}/get/${videoId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${READONLY_TOKEN}`
+      }
+    });
+
     const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Video not found');
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
+    if (!data.result) {
+      throw new Error('Video not found or link expired.');
+    }
+
+    let videoData;
+    // Upstash returns JSON stringified content in the result field sometimes, or raw object if stored properly.
+    try {
+      videoData = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+    } catch(e) {
+      videoData = data.result; // fallback
     }
 
     loading.style.display = 'none';
-    wrapper.innerHTML = data.embedCode;
+    wrapper.innerHTML = videoData.embedCode;
     wrapper.style.display = 'block';
 
   } catch (err) {
