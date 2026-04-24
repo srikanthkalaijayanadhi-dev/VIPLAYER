@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watch Video</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="watch">
+  <div class="viewer-container">
+    
+    <div id="viewerLoading" class="viewer-loading">
+      <div class="large-spinner"></div>
+      <p>Loading secure content...</p>
+    </div>
+
+    <div id="viewerError" class="viewer-error">
+      <h2>Video Not Found</h2>
+      <p>This secure link may be invalid or has expired.</p>
+    </div>
+
+    <div id="videoWrapper" class="video-wrapper">
+      <!-- Iframe will be injected here -->
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

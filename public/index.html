@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIPLAYER - Admin Portal</title>
+  <meta name="description" content="Secure video publishing system">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>VIPLAYER</h1>
+      <p>Secure Video Publishing</p>
+    </header>
+
+    <main class="panel">
+      <form id="publishForm">
+        <div class="form-group">
+          <label for="adminPass">Admin Password</label>
+          <input type="password" id="adminPass" class="form-control" placeholder="Enter admin password" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="embedCode">Embed Code (Iframe)</label>
+          <textarea id="embedCode" class="form-control" placeholder="<iframe src='...'></iframe>" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="publishBtn">
+          <span class="spinner"></span>
+          <span class="btn-text">Publish Video</span>
+        </button>
+      </form>
+
+      <div id="resultBox" class="result-box">
+        <div class="result-title" id="resultTitle">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          Published Successfully!
+        </div>
+        <p id="resultMessage">Share this secure link to allow viewing:</p>
+        <div class="copy-group" id="copyGroup">
+          <input type="text" id="watchUrl" class="copy-input" readonly>
+          <button class="btn-copy" id="copyBtn">Copy</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
