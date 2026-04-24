@@ -1,14 +1,11 @@
-const fs = require('fs').promises;
-const path = require('path');
 const crypto = require('crypto');
+const { Redis } = require('@upstash/redis');
 
-// Using /tmp to ensure Vercel compatibility ephemerally,
-// or current directory locally if /tmp is not available.
-const isVercel = process.env.VERCEL === '1';
-const DATA_FILE = isVercel ? '/tmp/data.json' : path.join(process.cwd(), 'data.json');
-
-// Memory cache fallback in case file writes fail completely
-const memoryStore = {};
+// Initialize Redis client using the environment variables automatically provided by Vercel Upstash Integration
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -33,28 +30,13 @@ module.exports = async function handler(req, res) {
   const id = crypto.randomUUID().split('-')[0] + '-' + Date.now().toString(36);
 
   try {
-    let data = {};
-    try {
-      const fileData = await fs.readFile(DATA_FILE, 'utf8');
-      data = JSON.parse(fileData);
-    } catch (err) {
-      // File doesn't exist yet, we will create it
-      // If error is ENOENT, we just continue with empty data.
-    }
-
-    // Save to memory and file
-    data[id] = { embedCode, createdAt: new Date().toISOString() };
-    memoryStore[id] = data[id];
-
-    await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+    // Save directly to Upstash Redis
+    // We are mapping the string ID to an object holding the iframe
+    await redis.set(id, { embedCode, createdAt: new Date().toISOString() });
 
     return res.status(200).json({ success: true, id });
   } catch (err) {
-    console.error('Storage Error:', err);
-    
-    // In case of error (e.g. read-only filesystem where /tmp isn't behaving as expected),
-    // fallback to memory completely.
-    memoryStore[id] = { embedCode, createdAt: new Date().toISOString() };
-    return res.status(200).json({ success: true, id, note: 'Saved to memory due to FS error' });
+    console.error('Redis Storage Error:', err);
+    return res.status(500).json({ error: 'Database error. Check your Upstash environment variables on Vercel.' });
   }
 }
