@@ -53,20 +53,13 @@ function initAdminPage() {
         throw new Error('Unauthorized: Invalid Admin Password!');
       }
 
-      // Direct Upstash REST API Call (Frontend-only publish)
-      const id = 'vid_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
-      const UPSTASH_URL = "https://glorious-beagle-83532.upstash.io";
-      const UPSTASH_TOKEN = "gQAAAAAAAUZMAAIgcDFkOTZmM2I1NjczOGE0ODFkYWJkYjgxNzU0ZGMyMmNiMw";
-
-      const payload = { embedCode, createdAt: new Date().toISOString() };
-
-      const response = await fetch(`${UPSTASH_URL}/set/${id}`, {
+      const response = await fetch('/api/publish', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${UPSTASH_TOKEN}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${password}`
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ embedCode })
       });
 
       const responseText = await response.text();
@@ -74,18 +67,18 @@ function initAdminPage() {
       try {
         data = JSON.parse(responseText);
       } catch (parseError) {
-        throw new Error(`Upstash failed to respond. Response: ${responseText.slice(0,30)}...`);
+        throw new Error(`Server failed to respond correctly. Response: ${responseText.slice(0,30)}...`);
       }
 
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to publish video');
       }
 
       let basePath = window.location.pathname;
       if (basePath.endsWith('index.html') || basePath.endsWith('/')) {
         basePath = basePath.substring(0, basePath.lastIndexOf('/'));
       }
-      const watchUrl = `${window.location.origin}${basePath}/watch.html?id=${id}`;
+      const watchUrl = `${window.location.origin}${basePath}/watch.html?id=${data.id}`;
       showResult(true, 'Published Successfully!', 'Share this secure link to allow viewing:', watchUrl);
       document.getElementById('embedCode').value = '';
 
@@ -126,37 +119,22 @@ async function initWatchPage() {
   }
 
   try {
-    // Direct Upstash GET using Read-Only Token
-    const UPSTASH_URL = "https://glorious-beagle-83532.upstash.io";
-    const READONLY_TOKEN = "ggAAAAAAAUZMAAIgcDFbdPAc2Rau2gMipDboRE3W6lVSK9jBbn1GNAUmbjUV6g";
+    const response = await fetch(`/api/video?id=${videoId}`);
+    const responseText = await response.text();
     
-    const response = await fetch(`${UPSTASH_URL}/get/${videoId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${READONLY_TOKEN}`
-      }
-    });
-
-    const data = await response.json();
-
-    if (data.error) {
-      throw new Error(data.error);
-    }
-
-    if (!data.result) {
-      throw new Error('Video not found or link expired.');
-    }
-
-    let videoData;
-    // Upstash returns JSON stringified content in the result field sometimes, or raw object if stored properly.
+    let data;
     try {
-      videoData = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
+      data = JSON.parse(responseText);
     } catch(e) {
-      videoData = data.result; // fallback
+      throw new Error('Invalid response. Are you running via Vercel server?');
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Video not found');
     }
 
     loading.style.display = 'none';
-    wrapper.innerHTML = videoData.embedCode;
+    wrapper.innerHTML = data.embedCode;
     wrapper.style.display = 'block';
 
   } catch (err) {
