@@ -3,8 +3,8 @@ const { Redis } = require('@upstash/redis');
 
 // Initialize Redis client using the environment variables automatically provided by Vercel Upstash Integration
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  url: process.env.UPSTASH_REDIS_REST_URL || "https://glorious-beagle-83532.upstash.io",
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || "gQAAAAAAAUZMAAIgcDFkOTZmM2I1NjczOGE0ODFkYWJkYjgxNzU0ZGMyMmNiMw",
 });
 
 module.exports = async function handler(req, res) {
